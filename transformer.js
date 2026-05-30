@@ -1,18 +1,8 @@
 /**
- * NANO TRANSFORMER WITH ON-BROWSER TRAINING LOOP
+ * NANO TRANSFORMER - UPGRADED TO WORD-LEVEL TOKENIZATION
  */
 
 class MathUtils {
-    static randomMatrix(rows, cols) {
-        return Array.from({ length: rows }, () => 
-            Array.from({ length: cols }, () => (Math.random() * 2 - 1) * 0.5)
-        );
-    }
-
-    static zeros(rows, cols) {
-        return Array.from({ length: rows }, () => Array(cols).fill(0));
-    }
-
     static softmax(arr) {
         const max = Math.max(...arr);
         const exps = arr.map(x => Math.exp(x - max));
@@ -22,53 +12,83 @@ class MathUtils {
 }
 
 class NanoTransformer {
-    constructor(vocabSize = 256) {
-        this.vocabSize = vocabSize;
-        // Lookup Table Weight Matrix linking past tokens directly to next probabilities
-        this.weights = MathUtils.randomMatrix(vocabSize, vocabSize);
+    constructor() {
+        this.vocab = [];     // AI की अपनी डिक्शनरी
+        this.weights = [];   // शब्दों के बीच का गणितीय संबंध
     }
 
-    // Live training engine using Delta Rule optimization
-    trainStep(inputToken, targetToken, learningRate = 0.2) {
-        // Softmax prediction probabilities
-        const rawLogits = this.weights[inputToken];
-        const probs = MathUtils.softmax(rawLogits);
+    // टेक्स्ट को छोटे टुकड़ों (Tokens/Words) में तोड़ना
+    tokenize(text) {
+        return text.toLowerCase().match(/\b\w+\b/g) || [];
+    }
 
-        // Calculate loss gradients (Target probability error vector)
-        for (let j = 0; j < this.vocabSize; j++) {
-            const targetOutput = (j === targetToken) ? 1.0 : 0.0;
-            const error = targetOutput - probs[j];
-            
-            // Backpropagation step: Adjust weight arrays directly
-            this.weights[inputToken][j] += learningRate * error;
+    // नए शब्दों को देखकर अपना दिमाग (Matrix) बड़ा करना
+    buildVocab(text) {
+        const words = this.tokenize(text);
+        words.forEach(word => {
+            if (!this.vocab.includes(word)) {
+                this.vocab.push(word);
+                // नए शब्द के लिए मैट्रिक्स में नई लाइन जोड़ें
+                this.weights.push(new Array(this.vocab.length).fill(0).map(() => (Math.random() * 0.1)));
+                // पुरानी लाइनों को नए शब्द के हिसाब से बड़ा करें
+                for(let i = 0; i < this.weights.length - 1; i++) {
+                    this.weights[i].push(Math.random() * 0.1);
+                }
+            }
+        });
+    }
+
+    // AI Training Engine
+    train(textData, epochs = 250, learningRate = 0.5) {
+        this.buildVocab(textData);
+        const tokens = this.tokenize(textData);
+        
+        for (let e = 0; e < epochs; e++) {
+            for (let i = 0; i < tokens.length - 1; i++) {
+                const currentIdx = this.vocab.indexOf(tokens[i]);
+                const targetIdx = this.vocab.indexOf(tokens[i + 1]);
+                
+                const logits = this.weights[currentIdx];
+                const probs = MathUtils.softmax(logits);
+                
+                // Backpropagation (गलतियों को सुधारना)
+                for (let j = 0; j < this.vocab.length; j++) {
+                    const target = (j === targetIdx) ? 1.0 : 0.0;
+                    const error = target - probs[j];
+                    this.weights[currentIdx][j] += learningRate * error;
+                }
+            }
         }
     }
 
-    // Predicts and loops sequences autoregressively
-    generate(inputText, maxTokens = 20) {
-        if (!inputText) return "...";
-        let output = "";
-        let currentToken = inputText.charCodeAt(inputText.length - 1) % this.vocabSize;
+    // Output Generation
+    generate(prompt, maxTokens = 15) {
+        const inputTokens = this.tokenize(prompt);
+        
+        // अगर AI ने वह शब्द कभी देखा ही नहीं है
+        if (inputTokens.length === 0 || !this.vocab.includes(inputTokens[inputTokens.length - 1])) {
+            return "[Error: I don't know these words yet. Please train me on them!]";
+        }
 
-        for (let step = 0; step < maxTokens; step++) {
-            const logits = this.weights[currentToken];
+        let currentIdx = this.vocab.indexOf(inputTokens[inputTokens.length - 1]);
+        let output = [];
+
+        for (let i = 0; i < maxTokens; i++) {
+            const logits = this.weights[currentIdx];
             const probs = MathUtils.softmax(logits);
             
-            // Select token with highest probability (Greedy Decoding)
-            let nextToken = probs.indexOf(Math.max(...probs));
+            // सबसे ज्यादा संभावना (Probability) वाले शब्द को चुनना
+            let nextIdx = probs.indexOf(Math.max(...probs));
+            let nextWord = this.vocab[nextIdx];
             
-            // Keep output within human-readable ASCII limits
-            if (nextToken < 32 || nextToken > 126) {
-                nextToken = 32; // Default to space if broken
+            output.push(nextWord);
+            currentIdx = nextIdx;
+            
+            // अगर AI एक ही शब्द में फँस जाए, तो उसे रोकना
+            if (output.length > 2 && output[output.length-1] === output[output.length-2] && output[output.length-2] === output[output.length-3]) {
+                break; 
             }
-
-            const nextChar = String.fromCharCode(nextToken);
-            output += nextChar;
-            currentToken = nextToken; // Shift state context window
-            
-            // Break infinite prediction loop on repeated space errors
-            if (output.endsWith("      ")) break;
         }
-        return output;
+        return output.join(" ");
     }
 }
