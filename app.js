@@ -1,16 +1,13 @@
-// Register Service Worker for Complete Offline Standalone Execution
+// Register Service Worker
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js')
-            .then(reg => console.log('PWA Service Worker Loaded successfully'))
-            .catch(err => console.error('PWA Registration Aborted', err));
+        navigator.serviceWorker.register('sw.js');
     });
 }
 
-// Instantiate Global Architecture
-const model = new NanoTransformer(256);
+// Initialize New Word-Level Model
+const model = new NanoTransformer();
 
-// Extract DOM Framework Elements
 const chatBox = document.getElementById('chat-box');
 const userInput = document.getElementById('user-input');
 const sendBtn = document.getElementById('send-btn');
@@ -27,59 +24,43 @@ function appendMessage(text, sender) {
     chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-// In-Browser Live Dataset Backpropagation Loop
-async function runLiveTraining() {
-    const textData = trainDataInput.value;
-    if (textData.length < 2) {
-        alert("Please input a longer text sequence dataset to parse.");
+// Run Training
+function runLiveTraining() {
+    const textData = trainDataInput.value.trim();
+    if (textData.split(" ").length < 3) {
+        alert("Please enter a few words to train on!");
         return;
     }
 
     trainBtn.disabled = true;
-    statusText.textContent = "Status: Training Synapses...";
-    progressBar.style.width = "0%";
+    statusText.textContent = "Status: Learning words...";
+    progressBar.style.width = "50%";
 
-    const totalEpochs = 150; 
-    
-    for (let epoch = 0; epoch < totalEpochs; epoch++) {
-        for (let i = 0; i < textData.length - 1; i++) {
-            const currentToken = textData.charCodeAt(i) % 256;
-            const nextToken = textData.charCodeAt(i + 1) % 256;
-            
-            // Optimize weights row vectors
-            model.trainStep(currentToken, nextToken, 0.2);
-        }
-
-        // GUI Frame Progress update pacing logic
-        if (epoch % 5 === 0) {
-            const progressPercentage = Math.floor((epoch / totalEpochs) * 100);
-            progressBar.style.width = `${progressPercentage}%`;
-            await new Promise(resolve => setTimeout(resolve, 10)); // Prevent browser thread freeze
-        }
-    }
-
-    progressBar.style.width = "100%";
-    statusText.textContent = "Status: 100% Fully Trained!";
-    trainBtn.disabled = false;
-    appendMessage("System: AI weights updated via on-device learning! Try entering keywords now.", "system");
+    // Allow UI to update before heavy math
+    setTimeout(() => {
+        model.train(textData, 300, 0.5); // 300 epochs for solid memory
+        
+        progressBar.style.width = "100%";
+        statusText.textContent = "Status: 100% Fully Trained!";
+        trainBtn.disabled = false;
+        appendMessage("System: I have learned your words! Try typing one of them.", "system");
+    }, 100);
 }
 
-// Prompt Generation Call
+// Generate Response
 function handleGenerateText() {
-    const prompt = userInput.value;
+    const prompt = userInput.value.trim();
     if (!prompt) return;
 
     appendMessage(prompt, 'user');
     userInput.value = '';
 
-    // Transformer Forward Pass Prediction Delay emulation
     setTimeout(() => {
-        const aiOutput = model.generate(prompt, 30);
+        const aiOutput = model.generate(prompt, 10);
         appendMessage(aiOutput, 'model');
-    }, 200);
+    }, 300);
 }
 
-// Attach UI Listeners
 trainBtn.addEventListener('click', runLiveTraining);
 sendBtn.addEventListener('click', handleGenerateText);
 userInput.addEventListener('keypress', (e) => {
