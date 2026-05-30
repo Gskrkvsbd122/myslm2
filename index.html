@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Nano-Transformer Live PWA</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1a1a2e">
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <img src="icon.svg" alt="Logo" class="logo">
+            <h1>Nano-Transformer AI</h1>
+        </header>
+        
+        <div class="training-panel">
+            <h3>Brain Training Zone</h3>
+            <textarea id="train-data" placeholder="Enter text to train your AI (e.g., hello world hello human)...">hello world hello world welcome to transformer welcome home</textarea>
+            <div class="control-row">
+                <button id="train-btn">⚡ Train Model Live</button>
+                <span id="status-text">Status: Untrained (Random Weights)</span>
+            </div>
+            <div class="progress-bar-container">
+                <div id="progress-bar" class="progress-bar"></div>
+            </div>
+        </div>
+
+        <div id="chat-box" class="chat-box">
+            <div class="message system">Welcome! Train the model above first, then type a prompt to test inference.</div>
+        </div>
+
+        <div class="input-area">
+            <input type="text" id="user-input" placeholder="Type a word you trained it on..." autocomplete="off">
+            <button id="send-btn">Generate</button>
+        </div>
+    </div>
+
+    <script src="transformer.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
